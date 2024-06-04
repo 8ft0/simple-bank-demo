@@ -13,15 +13,14 @@ jobs:
       with:
         python-version: 3.11
 
-    - name: Change to app directory
-      run: cd app
-
     - name: Install dependencies
       run: |
+        cd app
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
     - name: Run tests
       run: |
+        cd app
         python manage.py migrate
         python manage.py test
