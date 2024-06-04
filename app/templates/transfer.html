@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Transfer from Account {{ account.account_number }}</h2>
+<form method="post" class="form">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <label for="target_account">Target Account Number:</label>
+    <input type="text" name="target_account" required class="form-control">
+    <button type="submit" class="btn btn-primary">Transfer</button>
+</form>
+{% endblock %}

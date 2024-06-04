@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home - Simple Bank</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h2>Welcome to Simple Bank</h2>
+        <p>You are logged in as {{ user.username }}.</p>
+        <a href="{% url 'account_list' %}" class="btn btn-primary">View My Accounts</a>
+    </div>
+</body>
+</html>
