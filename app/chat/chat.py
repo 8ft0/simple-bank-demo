@@ -5,6 +5,9 @@ import re
 
 from decouple import config
 
+from accounts.models import Account, Transaction
+
+
 # Add the project root directory to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
@@ -69,6 +72,8 @@ def deposit_money(user_id, amount):
 
         if account:
             account.deposit(amount)
+            # Create a transaction record
+            Transaction.objects.create(account=account, transaction_type='deposit', amount=amount, balance=account.balance, description='Deposit')
             return f"Deposited ${amount} to your account."
         else:
             return "Account not found."
@@ -84,6 +89,8 @@ def withdraw_money(user_id, amount):
 
         if account:
             if account.withdraw(amount):
+                # Create a transaction record
+                Transaction.objects.create(account=account, transaction_type='withdrawal', amount=amount, balance=account.balance, description='Withdrawal')
                 return f"Withdrew ${amount} from your account."
             else:
                 return "Insufficient funds."
@@ -115,6 +122,9 @@ def transfer_money(user_id, target_account_number, amount):
         if source_account and target_account:
             if source_account.debit(amount):
                 target_account.credit(amount)
+                # Create transaction records
+                Transaction.objects.create(account=source_account, transaction_type='transfer', amount=amount, balance=source_account.balance, description=f'Transferred to {target_account_number}')
+                Transaction.objects.create(account=target_account, transaction_type='transfer', amount=amount, balance=target_account.balance, description=f'Transferred from {source_account.account_number}')
                 return f"Transferred ${amount} to account {target_account_number}."
             else:
                 return "Insufficient funds."
