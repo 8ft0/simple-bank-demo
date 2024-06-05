@@ -2,10 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
+
 from .models import Account, Transaction
 from .forms import DepositForm, WithdrawalForm, TransferForm, AccountCreationForm, CustomerRegistrationForm
 from .utils import send_notification
-
+from .chat_service import handle_user_query  # Ensure the correct relative import
 
 @login_required
 def home(request):
@@ -192,3 +194,19 @@ def transaction_history(request, account_id):
         'total_debits': total_debits,
         'total_credits': total_credits
     })
+
+
+# Chat
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .chat_service import handle_user_query  # Correct relative import
+
+@csrf_exempt
+def chat_view(request):
+    if request.method == "POST":
+        user_query = request.POST.get("query")
+        user_id = request.user.id
+        response = handle_user_query(user_query, user_id)
+        return JsonResponse({"response": response})
+    return JsonResponse({"error": "Invalid request method"}, status=400)
