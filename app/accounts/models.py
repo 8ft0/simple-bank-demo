@@ -12,6 +12,18 @@ class Account(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
+    def credit(self, amount):
+        self.balance += amount
+        self.save()
+
+    def debit(self, amount):
+        if self.balance >= amount:
+            self.balance -= amount
+            self.save()
+            return True
+        return False
+
     def __str__(self):
         return self.account_number
 

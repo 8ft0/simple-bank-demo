@@ -1,3 +1,4 @@
+from decimal import Decimal
 import os
 import sys
 import re
@@ -72,16 +73,24 @@ def get_transactions(user_id):
     except Account.DoesNotExist:
         return "Account not found."
 
-def transfer_money(user_id, target_account, amount):
+def transfer_money(user_id, target_account_number, amount):
     try:
-        account = Account.objects.filter(customers__id=user_id).first()
-        if account:
-            # Simulate transferring money
-            return f"Transferring ${amount} to account {target_account}..."
+        amount = Decimal(amount)
+        source_account = Account.objects.filter(customers__id=user_id).first()
+        target_account = Account.objects.filter(account_number=target_account_number).first()
+
+        if source_account and target_account:
+            if source_account.debit(amount):
+                target_account.credit(amount)
+                return f"Transferred ${amount} to account {target_account_number}."
+            else:
+                return "Insufficient funds."
         else:
-            return "Account not found."
+            return "Source or target account not found."
     except Account.DoesNotExist:
-        return "Account not found."
+        return "Source or target account not found."
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
 
 
 # Map intents to functions

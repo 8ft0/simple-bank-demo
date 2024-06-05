@@ -1,26 +1,31 @@
 from django.test import TestCase
-from django.contrib.auth import get_user_model
-
-from chat.chat import handle_user_query
 from accounts.models import Account
+from django.contrib.auth.models import User
+from chat.chat import transfer_money
 
-User = get_user_model()
-
-class TestChatService(TestCase):
-
+class TransferMoneyTestCase(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', email='testuser@example.com', password='Testpassword123')
-        self.account = Account.objects.create(account_number='1234567890', balance=100.00)
-        self.account.customers.add(self.user)
-        self.client.login(username='testuser', password='Testpassword123')
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.source_account = Account.objects.create(account_number='0001', balance=1000)
+        self.target_account = Account.objects.create(account_number='0002', balance=500)
+        self.source_account.customers.add(self.user)
 
-    def test_get_balance_query(self):
-        response = handle_user_query("What is my account balance?", self.user.id)
-        self.assertIn("Your account balance is $100", response)
+    def test_transfer_money_success(self):
+        response = transfer_money(self.user.id, '0002', 100)
+        self.assertEqual(response, "Transferred $100 to account 0002.")
+        self.source_account.refresh_from_db()
+        self.target_account.refresh_from_db()
+        self.assertEqual(self.source_account.balance, 900)
+        self.assertEqual(self.target_account.balance, 600)
 
-    def test_general_query(self):
-        response = handle_user_query("Tell me a joke", self.user.id)
-        self.assertIsInstance(response, str)
+    def test_transfer_money_insufficient_funds(self):
+        response = transfer_money(self.user.id, '0002', 2000)
+        self.assertEqual(response, "Insufficient funds.")
+        self.source_account.refresh_from_db()
+        self.target_account.refresh_from_db()
+        self.assertEqual(self.source_account.balance, 1000)
+        self.assertEqual(self.target_account.balance, 500)
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_transfer_money_account_not_found(self):
+        response = transfer_money(self.user.id, '9999', 100)
+        self.assertEqual(response, "Source or target account not found.")
