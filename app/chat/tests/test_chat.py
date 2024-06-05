@@ -1,5 +1,5 @@
 import unittest
-from ..chat import handle_user_query
+from chat.chat import handle_user_query
 
 class TestChatService(unittest.TestCase):
 
