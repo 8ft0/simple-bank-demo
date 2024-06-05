@@ -22,6 +22,6 @@ jobs:
     - name: Run tests
       run: |
         cd app
-        cp simple_bank/.env.example simple_bank/.env
+        cp .env.example .env
         python manage.py migrate
         python manage.py test
