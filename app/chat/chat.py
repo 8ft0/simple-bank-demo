@@ -6,9 +6,10 @@ from decimal import Decimal
 from decouple import config
 from django.contrib.auth import get_user_model
 
+import pandas as pd
+
 
 from accounts.models import Account, Transaction
-
 
 # Add the project root directory to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,7 +23,6 @@ django.setup()
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage
-from accounts.models import Account
 
 # Load the OpenAI API key from the environment variables
 openai_api_key = config("OPENAI_API_KEY")
@@ -35,7 +35,6 @@ model = ChatOpenAI(model="gpt-3.5-turbo", api_key=openai_api_key)
 
 User = get_user_model()
 
-
 # Define prompt template for intent detection
 intent_prompt = PromptTemplate.from_template("""
 Classify the user's query into one of the following intents: ["get_balance", "get_transactions", "transfer_money", "deposit_money", "withdraw_money", "create_account", "delete_account", "list_accounts", "other"].
@@ -45,20 +44,6 @@ Query: {query}
 Intent:
 """)
 
-
-
-
-
-# Extract parameters for transfer money intent
-def extract_transfer_params(user_input):
-    target_account_match = re.search(r'account (\d+)', user_input)
-    amount_match = re.search(r'\$(\d+)', user_input)
-
-    if target_account_match and amount_match:
-        target_account = target_account_match.group(1)
-        amount = amount_match.group(1)
-        return target_account, amount
-    return None, None
 
 
 def create_account(user_id, initial_balance=0):
@@ -86,28 +71,30 @@ def list_accounts(user_id):
     try:
         accounts = Account.objects.filter(customers__id=user_id)
         if accounts.exists():
-            account_list = "\n".join([f"{account.account_number}: ${account.balance}" for account in accounts])
-            return f"Your accounts:\n{account_list}"
+            account_data = [{"Account Number": account.account_number, "Balance": account.balance} for account in accounts]
+            df = pd.DataFrame(account_data)
+            return df.to_string(index=False)
         else:
             return "No accounts found."
     except Exception as e:
         return f"An error occurred: {str(e)}"
 
-# Define functions to handle different intents
-def get_account_balance(user_id):
+def get_account_balance(user_id, account_number=None):
     try:
-        account = Account.objects.filter(customers__id=user_id).first()
+        account = Account.objects.filter(account_number=account_number, customers__id=user_id).first() if account_number else Account.objects.filter(customers__id=user_id).first()
         if account:
-            return f"Your account balance is ${account.balance}."
+            return f"The balance for account {account.account_number} is ${account.balance}."
         else:
             return "Account not found."
     except Account.DoesNotExist:
         return "Account not found."
 
-def deposit_money(user_id, amount):
+
+
+def deposit_money(user_id, amount, account_number=None):
     try:
         amount = Decimal(amount)
-        account = Account.objects.filter(customers__id=user_id).first()
+        account = Account.objects.filter(account_number=account_number, customers__id=user_id).first() if account_number else Account.objects.filter(customers__id=user_id).first()
 
         if account:
             account.deposit(amount)
@@ -121,10 +108,10 @@ def deposit_money(user_id, amount):
     except Exception as e:
         return f"An error occurred: {str(e)}"
 
-def withdraw_money(user_id, amount):
+def withdraw_money(user_id, amount, account_number=None):
     try:
         amount = Decimal(amount)
-        account = Account.objects.filter(customers__id=user_id).first()
+        account = Account.objects.filter(account_number=account_number, customers__id=user_id).first() if account_number else Account.objects.filter(customers__id=user_id).first()
 
         if account:
             if account.withdraw(amount):
@@ -140,25 +127,46 @@ def withdraw_money(user_id, amount):
     except Exception as e:
         return f"An error occurred: {str(e)}"
 
-
-def get_transactions(user_id):
+def get_transactions(user_id, account_number=None):
     try:
-        account = Account.objects.filter(customers__id=user_id).first()
+        account = Account.objects.filter(account_number=account_number, customers__id=user_id).first() if account_number else Account.objects.filter(customers__id=user_id).first()
         if account:
             transactions = account.transactions.all()
-            return "\n".join([f"{t.transaction_type}: ${t.amount} on {t.timestamp}" for t in transactions])
+            transaction_data = [{"Account Number": account.account_number, "Type": t.transaction_type, "Amount": t.amount, "Timestamp": t.timestamp} for t in transactions]
+            df = pd.DataFrame(transaction_data)
+            return df.to_string(index=False)
         else:
             return "Account not found."
     except Account.DoesNotExist:
         return "Account not found."
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
 
-def transfer_money(user_id, target_account_number, amount):
+
+
+# Extract parameters for transfer money intent
+def extract_transfer_params(user_input):
+    source_account_match = re.search(r'from account (\d+)', user_input)
+    target_account_match = re.search(r'to account (\d+)', user_input)
+    amount_match = re.search(r'\$(\d+)', user_input)
+
+    if source_account_match and target_account_match and amount_match:
+        source_account = source_account_match.group(1)
+        target_account = target_account_match.group(1)
+        amount = amount_match.group(1)
+        return source_account, target_account, amount
+    return None, None, None
+
+
+def transfer_money(user_id, source_account_number, target_account_number, amount):
     try:
         amount = Decimal(amount)
-        source_account = Account.objects.filter(customers__id=user_id).first()
-        target_account = Account.objects.filter(account_number=target_account_number).first()
+        source_account = Account.objects.filter(account_number=source_account_number, customers__id=user_id).first()
+        target_account = Account.objects.filter(account_number=target_account_number, customers__id=user_id).first()
 
         if source_account and target_account:
+            if source_account.account_number == target_account_number:
+                return "Cannot transfer money to the same account."
             if source_account.debit(amount):
                 target_account.credit(amount)
                 # Create transaction records
@@ -173,6 +181,7 @@ def transfer_money(user_id, target_account_number, amount):
         return "Source or target account not found."
     except Exception as e:
         return f"An error occurred: {str(e)}"
+
 
 
 # Map intents to functions
@@ -197,16 +206,18 @@ def handle_user_query(user_query, user_id):
     if intent in intent_function_mapping:
         response_function = intent_function_mapping[intent]
         if intent == "transfer_money":
-            target_account, amount = extract_transfer_params(user_query)
-            if target_account and amount:
-                return response_function(user_id, target_account, amount)
+            source_account, target_account, amount = extract_transfer_params(user_query)
+            if source_account and target_account and amount:
+                return response_function(user_id, source_account, target_account, amount)
             else:
-                return "Could not extract transfer details. Please specify the target account and amount."
+                return "Could not extract transfer details. Please specify the source account, target account, and amount."
         elif intent in ["deposit_money", "withdraw_money"]:
+            account_number_match = re.search(r'account (\d+)', user_query)
             amount_match = re.search(r'\$(\d+)', user_query)
             if amount_match:
                 amount = amount_match.group(1)
-                return response_function(user_id, amount)
+                account_number = account_number_match.group(1) if account_number_match else None
+                return response_function(user_id, amount, account_number)
             else:
                 return "Could not extract amount. Please specify the amount."
         elif intent == "create_account":
@@ -220,9 +231,18 @@ def handle_user_query(user_query, user_id):
                 return response_function(user_id, account_number)
             else:
                 return "Could not extract account number. Please specify the account number."
+        elif intent in ["get_balance", "get_transactions"]:
+            account_number_match = re.search(r'account (\d+)', user_query)
+            account_number = account_number_match.group(1) if account_number_match else None
+            response = response_function(user_id, account_number)
+            # Check if the response is a string that represents a DataFrame and format it accordingly
+            if isinstance(response, str) and response.strip().startswith("|") and "\n" in response:
+                return f"```\n{response}\n```"
+            return response
         return response_function(user_id)
     else:
         return model.invoke([HumanMessage(content=user_query)]).content
+
 
 if __name__ == "__main__":
     # Example usage for debugging

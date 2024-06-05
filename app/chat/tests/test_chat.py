@@ -1,6 +1,7 @@
 from django.test import TestCase
 from accounts.models import Account, Transaction
 from django.contrib.auth.models import User
+from chat.chat import create_account, delete_account, list_accounts
 from chat.chat import deposit_money, withdraw_money, transfer_money
 
 class AccountManagementTestCase(TestCase):
@@ -29,7 +30,7 @@ class AccountManagementTestCase(TestCase):
         response = list_accounts(self.user.id)
         self.assertIn("0001: $100", response)
         self.assertIn("0002: $200", response)
-        
+
 class AccountOperationsTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass')

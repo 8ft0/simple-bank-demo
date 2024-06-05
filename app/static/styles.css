@@ -1,5 +1,5 @@
 .chat-container {
-    width: 300px;
+    width: 500px; /* Adjusted width to make the container wider */
     margin: 0 auto;
     border: 1px solid #ccc;
     padding: 10px;
@@ -14,12 +14,12 @@
 }
 
 #user-input {
-    width: calc(100% - 70px);
+    width: calc(100% - 80px); /* Adjusted to fit within the wider container */
     padding: 5px;
 }
 
 #send-button {
-    width: 50px;
+    width: 70px; /* Increased width to maintain proportion with the wider input */
     padding: 5px;
 }
 
