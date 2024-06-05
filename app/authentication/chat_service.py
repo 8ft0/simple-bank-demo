@@ -1,3 +1,15 @@
+import os
+import sys
+
+# Add the project root directory to the Python path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+
+# Set up Django environment
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'simple_bank.settings')
+import django
+django.setup()
+
 from decouple import config
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
@@ -44,3 +56,14 @@ def get_response(user_input, user_id):
 
 def handle_user_query(user_query, user_id):
     return get_response(user_query, user_id)
+
+if __name__ == "__main__":
+    # Example usage for debugging
+    user_id = 1  # Replace with a valid user_id from your database
+    user_query = "What is my account balance?"
+    print(handle_user_query(user_query, user_id))
+
+
+
+    response = handle_user_query("Tell me a joke", user_id)
+    print(response)
