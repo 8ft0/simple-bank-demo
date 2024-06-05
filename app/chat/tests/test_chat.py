@@ -3,6 +3,33 @@ from accounts.models import Account, Transaction
 from django.contrib.auth.models import User
 from chat.chat import deposit_money, withdraw_money, transfer_money
 
+class AccountManagementTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+
+    def test_create_account(self):
+        response = create_account(self.user.id, 100)
+        self.assertIn("created with initial balance $100", response)
+        account = Account.objects.filter(customers__id=self.user.id).first()
+        self.assertIsNotNone(account)
+        self.assertEqual(account.balance, 100)
+
+    def test_delete_account(self):
+        account = Account.objects.create(account_number='0001', balance=100)
+        account.customers.add(self.user)
+        response = delete_account(self.user.id, '0001')
+        self.assertEqual(response, "Account 0001 deleted.")
+        self.assertFalse(Account.objects.filter(account_number='0001').exists())
+
+    def test_list_accounts(self):
+        account1 = Account.objects.create(account_number='0001', balance=100)
+        account1.customers.add(self.user)
+        account2 = Account.objects.create(account_number='0002', balance=200)
+        account2.customers.add(self.user)
+        response = list_accounts(self.user.id)
+        self.assertIn("0001: $100", response)
+        self.assertIn("0002: $200", response)
+        
 class AccountOperationsTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass')
