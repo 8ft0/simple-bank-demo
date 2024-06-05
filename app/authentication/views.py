@@ -202,6 +202,10 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .chat_service import handle_user_query  # Correct relative import
 
+
+def chat_page_view(request):
+    return render(request, 'chat.html')
+
 @csrf_exempt
 def chat_view(request):
     if request.method == "POST":

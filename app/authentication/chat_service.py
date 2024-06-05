@@ -119,7 +119,7 @@ if __name__ == "__main__":
     user_query = "Show me my recent transactions."
     print(handle_user_query(user_query, user_id))
 
-    user_query = "Transfer $100 to account 1234567890."
+    user_query = "Transfer $1 to account 0002."
     print(handle_user_query(user_query, user_id))
 
     while True:
