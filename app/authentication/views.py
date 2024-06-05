@@ -7,7 +7,6 @@ from django.http import JsonResponse
 from .models import Account, Transaction
 from .forms import DepositForm, WithdrawalForm, TransferForm, AccountCreationForm, CustomerRegistrationForm
 from .utils import send_notification
-from .chat_service import handle_user_query  # Ensure the correct relative import
 
 @login_required
 def home(request):
@@ -196,21 +195,3 @@ def transaction_history(request, account_id):
     })
 
 
-# Chat
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from .chat_service import handle_user_query  # Correct relative import
-
-
-def chat_page_view(request):
-    return render(request, 'chat.html')
-
-@csrf_exempt
-def chat_view(request):
-    if request.method == "POST":
-        user_query = request.POST.get("query")
-        user_id = request.user.id
-        response = handle_user_query(user_query, user_id)
-        return JsonResponse({"response": response})
-    return JsonResponse({"error": "Invalid request method"}, status=400)

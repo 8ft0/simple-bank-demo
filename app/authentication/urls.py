@@ -1,7 +1,6 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from .views import register, login_view, home, create_account, delete_account, account_list, deposit, withdraw, transfer, transaction_history
-from .views import chat_view, chat_page_view
 
 urlpatterns = [
     path('register/', register, name='register'),
@@ -15,7 +14,4 @@ urlpatterns = [
     path('withdraw/<int:account_id>/', withdraw, name='withdraw'),
     path('transfer/<int:account_id>/', transfer, name='transfer'),
     path('transactions/<int:account_id>/', transaction_history, name='transaction_history'),
-    path('chat/', chat_view, name='chat'),
-    path('chat-page/', chat_page_view, name='chat_page'),
-
 ]
