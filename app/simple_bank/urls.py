@@ -21,6 +21,6 @@ urlpatterns = [
     path('', auth_views.home, name='home'),  # Add this line
     path('admin/', admin.site.urls),
     path('auth/', include('authentication.urls')),
-    path('chat/', include('chat_service.urls')),  # Ensure chat URLs are included if defined here
+    path('chat/', include('chat.urls')),  # Ensure chat URLs are included if defined here
 
 ]

@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt  # Import csrf_exempt
-from .chat_service import handle_user_query
+from .chat import handle_user_query
 
 @csrf_exempt
 def chat_view(request):
