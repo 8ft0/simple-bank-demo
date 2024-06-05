@@ -28,8 +28,9 @@ class AccountManagementTestCase(TestCase):
         account2 = Account.objects.create(account_number='0002', balance=200)
         account2.customers.add(self.user)
         response = list_accounts(self.user.id)
-        self.assertIn("0001: $100", response)
-        self.assertIn("0002: $200", response)
+        self.assertIn("0001  100.00", response)
+        self.assertIn("0002  200.00", response)
+
 
 class AccountOperationsTestCase(TestCase):
     def setUp(self):
@@ -37,30 +38,31 @@ class AccountOperationsTestCase(TestCase):
         self.source_account = Account.objects.create(account_number='0001', balance=1000)
         self.target_account = Account.objects.create(account_number='0002', balance=500)
         self.source_account.customers.add(self.user)
+        self.target_account.customers.add(self.user)  # Ensure the target account is also linked to the user
 
     def test_deposit_money(self):
-        response = deposit_money(self.user.id, 100)
+        response = deposit_money(self.user.id, 100, '0001')
         self.assertEqual(response, "Deposited $100 to your account.")
         self.source_account.refresh_from_db()
         self.assertEqual(self.source_account.balance, 1100)
         self.assertTrue(Transaction.objects.filter(account=self.source_account, transaction_type='deposit', amount=100).exists())
 
     def test_withdraw_money_success(self):
-        response = withdraw_money(self.user.id, 100)
+        response = withdraw_money(self.user.id, 100, '0001')
         self.assertEqual(response, "Withdrew $100 from your account.")
         self.source_account.refresh_from_db()
         self.assertEqual(self.source_account.balance, 900)
         self.assertTrue(Transaction.objects.filter(account=self.source_account, transaction_type='withdrawal', amount=100).exists())
 
     def test_withdraw_money_insufficient_funds(self):
-        response = withdraw_money(self.user.id, 2000)
+        response = withdraw_money(self.user.id, 2000, '0001')
         self.assertEqual(response, "Insufficient funds.")
         self.source_account.refresh_from_db()
         self.assertEqual(self.source_account.balance, 1000)
         self.assertFalse(Transaction.objects.filter(account=self.source_account, transaction_type='withdrawal', amount=2000).exists())
 
     def test_transfer_money_success(self):
-        response = transfer_money(self.user.id, '0002', 100)
+        response = transfer_money(self.user.id, '0001', '0002', 100)
         self.assertEqual(response, "Transferred $100 to account 0002.")
         self.source_account.refresh_from_db()
         self.target_account.refresh_from_db()
@@ -70,7 +72,7 @@ class AccountOperationsTestCase(TestCase):
         self.assertTrue(Transaction.objects.filter(account=self.target_account, transaction_type='transfer', amount=100).exists())
 
     def test_transfer_money_insufficient_funds(self):
-        response = transfer_money(self.user.id, '0002', 2000)
+        response = transfer_money(self.user.id, '0001', '0002', 2000)
         self.assertEqual(response, "Insufficient funds.")
         self.source_account.refresh_from_db()
         self.target_account.refresh_from_db()

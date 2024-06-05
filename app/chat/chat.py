@@ -162,7 +162,7 @@ def transfer_money(user_id, source_account_number, target_account_number, amount
     try:
         amount = Decimal(amount)
         source_account = Account.objects.filter(account_number=source_account_number, customers__id=user_id).first()
-        target_account = Account.objects.filter(account_number=target_account_number, customers__id=user_id).first()
+        target_account = Account.objects.filter(account_number=target_account_number).first()
 
         if source_account and target_account:
             if source_account.account_number == target_account_number:
@@ -181,6 +181,7 @@ def transfer_money(user_id, source_account_number, target_account_number, amount
         return "Source or target account not found."
     except Exception as e:
         return f"An error occurred: {str(e)}"
+
 
 
 
