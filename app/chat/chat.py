@@ -30,7 +30,7 @@ model = ChatOpenAI(model="gpt-3.5-turbo", api_key=openai_api_key)
 
 # Define prompt template for intent detection
 intent_prompt = PromptTemplate.from_template("""
-Classify the user's query into one of the following intents: ["get_balance", "get_transactions", "transfer_money", "other"].
+Classify the user's query into one of the following intents: ["get_balance", "get_transactions", "transfer_money", "deposit_money", "withdraw_money", "other"].
 
 Query: {query}
 
@@ -61,6 +61,39 @@ def get_account_balance(user_id):
             return "Account not found."
     except Account.DoesNotExist:
         return "Account not found."
+
+def deposit_money(user_id, amount):
+    try:
+        amount = Decimal(amount)
+        account = Account.objects.filter(customers__id=user_id).first()
+
+        if account:
+            account.deposit(amount)
+            return f"Deposited ${amount} to your account."
+        else:
+            return "Account not found."
+    except Account.DoesNotExist:
+        return "Account not found."
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
+
+def withdraw_money(user_id, amount):
+    try:
+        amount = Decimal(amount)
+        account = Account.objects.filter(customers__id=user_id).first()
+
+        if account:
+            if account.withdraw(amount):
+                return f"Withdrew ${amount} from your account."
+            else:
+                return "Insufficient funds."
+        else:
+            return "Account not found."
+    except Account.DoesNotExist:
+        return "Account not found."
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
+
 
 def get_transactions(user_id):
     try:
@@ -97,7 +130,9 @@ def transfer_money(user_id, target_account_number, amount):
 intent_function_mapping = {
     "get_balance": get_account_balance,
     "get_transactions": get_transactions,
-    "transfer_money": transfer_money
+    "transfer_money": transfer_money,
+    "deposit_money": deposit_money,
+    "withdraw_money": withdraw_money
 }
 
 def determine_intent(user_input):
@@ -115,6 +150,13 @@ def handle_user_query(user_query, user_id):
                 return response_function(user_id, target_account, amount)
             else:
                 return "Could not extract transfer details. Please specify the target account and amount."
+        elif intent in ["deposit_money", "withdraw_money"]:
+            amount_match = re.search(r'\$(\d+)', user_query)
+            if amount_match:
+                amount = amount_match.group(1)
+                return response_function(user_id, amount)
+            else:
+                return "Could not extract amount. Please specify the amount."
         return response_function(user_id)
     else:
         return model.invoke([HumanMessage(content=user_query)]).content

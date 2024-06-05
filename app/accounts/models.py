@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 
 # Create your models here.
@@ -23,6 +25,12 @@ class Account(models.Model):
             self.save()
             return True
         return False
+    
+    def deposit(self, amount):
+        self.credit(Decimal(amount))
+
+    def withdraw(self, amount):
+        return self.debit(Decimal(amount))
 
     def __str__(self):
         return self.account_number

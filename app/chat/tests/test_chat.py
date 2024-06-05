@@ -1,8 +1,33 @@
 from django.test import TestCase
 from accounts.models import Account
 from django.contrib.auth.models import User
-from chat.chat import transfer_money
+from chat.chat import deposit_money, withdraw_money, transfer_money
 
+class AccountOperationsTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.account = Account.objects.create(account_number='0001', balance=1000)
+        self.account.customers.add(self.user)
+
+    def test_deposit_money(self):
+        response = deposit_money(self.user.id, 100)
+        self.assertEqual(response, "Deposited $100 to your account.")
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, 1100)
+
+    def test_withdraw_money_success(self):
+        response = withdraw_money(self.user.id, 100)
+        self.assertEqual(response, "Withdrew $100 from your account.")
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, 900)
+
+    def test_withdraw_money_insufficient_funds(self):
+        response = withdraw_money(self.user.id, 2000)
+        self.assertEqual(response, "Insufficient funds.")
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, 1000)
+
+        
 class TransferMoneyTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass')
