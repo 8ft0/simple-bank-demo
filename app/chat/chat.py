@@ -16,7 +16,7 @@ django.setup()
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage
-from authentication.models import Account
+from accounts.models import Account
 
 # Load the OpenAI API key from the environment variables
 openai_api_key = config("OPENAI_API_KEY")
